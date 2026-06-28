@@ -1,0 +1,42 @@
+workflows:
+  android-workflow:
+    name: DeepResearch Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - deepresearch_env
+      android_signing:
+        - deepresearch_keystore
+      vars:
+        JAVA_VERSION: "17"
+        GRADLE_VERSION: "8.5"
+      flutter: none
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Gradle Wrapper aufsetzen
+        script: |
+          cd .
+          chmod +x gradlew 2>/dev/null || true
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version=8.5
+          fi
+      - name: Debug APK bauen
+        script: |
+          ./gradlew assembleDebug
+    artifacts:
+      - app/build/outputs/**/*.apk
+      - app/build/outputs/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - philipp@example.com
+        notify:
+          success: true
+          failure: true
