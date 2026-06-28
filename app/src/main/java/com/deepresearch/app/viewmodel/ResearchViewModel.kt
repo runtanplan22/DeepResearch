@@ -26,7 +26,7 @@ class ResearchViewModel(application: Application) : AndroidViewModel(application
             deepSeekApiKey = { settings.getDeepSeekApiKey() },
             searxngBaseUrl = { settings.getSearxngBaseUrl() },
             searxngApiKey = { settings.getSearxngApiKey() }
-        )
+        ) { }
     )
 
     private val _researchState = MutableStateFlow(ResearchState())
