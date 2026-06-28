@@ -103,8 +103,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // PDF generation
-    implementation("com.itextpdf:itext7-core:7.2.5")
+    // (PDF generation uses Android built-in PdfDocument API, no external lib needed)
 
     // Debug tooling
     debugImplementation("androidx.compose.ui:ui-tooling")

@@ -405,85 +405,154 @@ private fun DiscussionTab(viewModel: ResearchViewModel) {
 }
 
 /**
- * Export the report as a PDF using iText.
+ * Export the report as a PDF using Android's built-in PdfDocument API.
+ * Available since API 19, no external library needed.
  */
 private fun exportPdf(context: Context, report: String, topic: String) {
     try {
-        val pdfFile = File(context.cacheDir, "DeepResearch_Bericht_${topic.take(30).replace(Regex("""[^a-zA-Z0-9]"""), "_")}.pdf")
-        val writer = com.itextpdf.kernel.pdf.PdfWriter(pdfFile)
-        val pdf = com.itextpdf.kernel.pdf.PdfDocument(writer)
-        val document = com.itextpdf.layout.Document(pdf)
+        val pdfFile = File(context.cacheDir, "DeepResearch_Bericht_${'$'}{topic.take(30).replace(Regex("""[^a-zA-Z0-9]"""), "_")}.pdf")
+        val pdfDocument = android.graphics.pdf.PdfDocument()
+        val paint = android.graphics.Paint()
+        val titlePaint = android.graphics.Paint().apply {
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            textSize = 32f
+            isAntiAlias = true
+        }
+        val headingPaint = android.graphics.Paint().apply {
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            textSize = 22f
+            isAntiAlias = true
+        }
+        val subheadingPaint = android.graphics.Paint().apply {
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            textSize = 18f
+            isAntiAlias = true
+        }
+        val bodyPaint = android.graphics.Paint().apply {
+            textSize = 14f
+            isAntiAlias = true
+        }
+        val datePaint = android.graphics.Paint().apply {
+            textSize = 12f
+            color = android.graphics.Color.GRAY
+            isAntiAlias = true
+        }
+
+        // Page info: A4 = 595 x 842 points
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 50
+        val contentWidth = pageWidth - 2 * margin
+
+        var pageCount = 1
+        var y = margin + 30f
 
         // Title page
-        val titleFont = com.itextpdf.kernel.font.PdfFontFactory.createFont()
-        val boldFont = com.itextpdf.kernel.font.PdfFontFactory.createFont(
-            com.itextpdf.io.font.constants.StandardFonts.HELVETICA_BOLD
-        )
+        val titlePageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageCount).create()
+        var page = pdfDocument.startPage(titlePageInfo)
+        val canvas = page.canvas
 
-        document.add(com.itextpdf.layout.element.Paragraph("Forschungsbericht")
-            .setFont(boldFont)
-            .setFontSize(24)
-            .setMarginBottom(10))
-        document.add(com.itextpdf.layout.element.Paragraph(topic)
-            .setFont(titleFont)
-            .setFontSize(16)
-            .setMarginBottom(20))
-        document.add(com.itextpdf.layout.element.Paragraph(java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.GERMAN).format(java.util.Date()))
-            .setFont(titleFont)
-            .setFontSize(12)
-            .setFontColor(com.itextpdf.kernel.colors.ColorConstants.GRAY)
-            .setMarginBottom(30))
+        // Title
+        canvas.drawText("Forschungsbericht", margin.toFloat(), y, titlePaint)
+        y += 50f
+        canvas.drawText(topic, margin.toFloat(), y, headingPaint)
+        y += 40f
+        val dateStr = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.GERMAN).format(java.util.Date())
+        canvas.drawText(dateStr, margin.toFloat(), y, datePaint)
+        y += 30f
 
-        // Separator
-        document.add(com.itextpdf.layout.element.LineSeparator(com.itextpdf.kernel.pdf.canvas.draw.SolidLine(1f)))
-        document.add(com.itextpdf.layout.element.Paragraph("").setMarginBottom(10))
+        // Separator line
+        paint.style = android.graphics.Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        canvas.drawLine(margin.toFloat(), y, (pageWidth - margin).toFloat(), y, paint)
+        paint.style = android.graphics.Paint.Style.FILL
+        y += 30f
 
-        // Process markdown into PDF content
+        // Process markdown content
         val lines = report.split("\n")
         for (line in lines) {
+            // Check if we need a new page
+            if (y > pageHeight - margin) {
+                pdfDocument.finishPage(page)
+                pageCount++
+                val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageCount).create()
+                page = pdfDocument.startPage(newPageInfo)
+                y = margin.toFloat()
+            }
+
+            val displayLine = line.trimStart()
             when {
-                line.startsWith("### ") -> {
-                    document.add(com.itextpdf.layout.element.Paragraph(line.removePrefix("### "))
-                        .setFont(boldFont)
-                        .setFontSize(13)
-                        .setMarginTop(12)
-                        .setMarginBottom(6))
+                displayLine.startsWith("### ") -> {
+                    canvas.drawText(displayLine.removePrefix("### "), margin.toFloat(), y, subheadingPaint)
+                    y += 30f
                 }
-                line.startsWith("## ") -> {
-                    document.add(com.itextpdf.layout.element.Paragraph(line.removePrefix("## "))
-                        .setFont(boldFont)
-                        .setFontSize(16)
-                        .setMarginTop(16)
-                        .setMarginBottom(8))
+                displayLine.startsWith("## ") -> {
+                    canvas.drawText(displayLine.removePrefix("## "), margin.toFloat(), y, headingPaint)
+                    y += 35f
                 }
-                line.startsWith("# ") -> {
-                    document.add(com.itextpdf.layout.element.Paragraph(line.removePrefix("# "))
-                        .setFont(boldFont)
-                        .setFontSize(20)
-                        .setMarginTop(20)
-                        .setMarginBottom(10))
+                displayLine.startsWith("# ") -> {
+                    canvas.drawText(displayLine.removePrefix("# "), margin.toFloat(), y, titlePaint)
+                    y += 40f
                 }
-                line.trimStart().startsWith("- ") || line.trimStart().startsWith("* ") -> {
-                    val content = line.trimStart().removePrefix("- ").removePrefix("* ")
-                    document.add(com.itextpdf.layout.element.ListItem(content)
-                        .setFont(titleFont)
-                        .setFontSize(11)
-                        .setMarginLeft(20))
+                displayLine.startsWith("- ") || displayLine.startsWith("* ") -> {
+                    val content = displayLine.removePrefix("- ").removePrefix("* ")
+                    canvas.drawText("  \u2022  $content", margin.toFloat(), y, bodyPaint)
+                    y += 22f
                 }
-                line.startsWith("---") || line.startsWith("***") -> {
-                    document.add(com.itextpdf.layout.element.LineSeparator(com.itextpdf.kernel.pdf.canvas.draw.SolidLine(1f)))
+                displayLine.matches(Regex("""^\d+\..*""")) -> {
+                    canvas.drawText(displayLine, margin.toFloat(), y, bodyPaint)
+                    y += 22f
                 }
-                line.isBlank() -> { /* skip */ }
+                displayLine.startsWith("---") || displayLine.startsWith("***") -> {
+                    paint.style = android.graphics.Paint.Style.STROKE
+                    canvas.drawLine(margin.toFloat(), y, (pageWidth - margin).toFloat(), y, paint)
+                    paint.style = android.graphics.Paint.Style.FILL
+                    y += 20f
+                }
+                displayLine.startsWith("> ") -> {
+                    paint.color = android.graphics.Color.GRAY
+                    canvas.drawText(displayLine.removePrefix("> "), margin.toFloat() + 20f, y, bodyPaint)
+                    paint.color = android.graphics.Color.BLACK
+                    y += 22f
+                }
+                displayLine.isBlank() -> {
+                    y += 10f
+                }
                 else -> {
-                    document.add(com.itextpdf.layout.element.Paragraph(line)
-                        .setFont(titleFont)
-                        .setFontSize(11)
-                        .setMarginBottom(4))
+                    // Word wrap long lines
+                    val words = displayLine.split(" ")
+                    val wrapped = mutableListOf<String>()
+                    var currentLine = StringBuilder()
+                    for (word in words) {
+                        if (currentLine.length + word.length > 80) {
+                            wrapped.add(currentLine.toString())
+                            currentLine = StringBuilder(word)
+                        } else {
+                            if (currentLine.isNotEmpty()) currentLine.append(" ")
+                            currentLine.append(word)
+                        }
+                    }
+                    if (currentLine.isNotEmpty()) wrapped.add(currentLine.toString())
+                    for (wl in wrapped) {
+                        if (y > pageHeight - margin) {
+                            pdfDocument.finishPage(page)
+                            pageCount++
+                            val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageCount).create()
+                            page = pdfDocument.startPage(newPageInfo)
+                            y = margin.toFloat()
+                        }
+                        canvas.drawText(wl, margin.toFloat(), y, bodyPaint)
+                        y += 20f
+                    }
                 }
             }
         }
 
-        document.close()
+        pdfDocument.finishPage(page)
+
+        // Write to file
+        pdfDocument.writeTo(java.io.FileOutputStream(pdfFile))
+        pdfDocument.close()
 
         // Share via Android share intent
         val shareIntent = Intent().apply {

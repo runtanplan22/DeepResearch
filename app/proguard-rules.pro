@@ -9,9 +9,6 @@
 # Keep Room entities
 -keep class com.deepresearch.app.data.local.** { *; }
 
-# Keep iText
--keep class com.itextpdf.** { *; }
-
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**
