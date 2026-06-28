@@ -410,7 +410,8 @@ private fun DiscussionTab(viewModel: ResearchViewModel) {
  */
 private fun exportPdf(context: Context, report: String, topic: String) {
     try {
-        val pdfFile = File(context.cacheDir, "DeepResearch_Bericht_${'$'}{topic.take(30).replace(Regex("""[^a-zA-Z0-9]"""), "_")}.pdf")
+        val safeTopic = topic.take(30).replace(Regex("""[^a-zA-Z0-9]"""), "_")
+        val pdfFile = File(context.cacheDir, "DeepResearch_Bericht_$safeTopic.pdf")
         val pdfDocument = android.graphics.pdf.PdfDocument()
         val paint = android.graphics.Paint()
         val titlePaint = android.graphics.Paint().apply {
