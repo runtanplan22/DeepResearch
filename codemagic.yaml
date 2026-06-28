@@ -6,8 +6,6 @@ workflows:
     environment:
       groups:
         - deepresearch_env
-      android_signing:
-        - deepresearch_keystore
       vars:
         JAVA_VERSION: "17"
         GRADLE_VERSION: "8.5"
@@ -33,10 +31,3 @@ workflows:
     artifacts:
       - app/build/outputs/**/*.apk
       - app/build/outputs/**/*.aab
-    publishing:
-      email:
-        recipients:
-          - philipp@example.com
-        notify:
-          success: true
-          failure: true
