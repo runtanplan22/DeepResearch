@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 class ResearchRepository(
     private val settingsProvider: SettingsProvider
 ) {
-    data class SettingsProvider(
+    open class SettingsProvider(
         val deepSeekBaseUrl: () -> String,
         val deepSeekApiKey: () -> String,
         val searxngBaseUrl: () -> String,
