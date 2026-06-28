@@ -21,7 +21,8 @@ class ResearchRepository(
         val deepSeekBaseUrl: () -> String,
         val deepSeekApiKey: () -> String,
         val searxngBaseUrl: () -> String,
-        val searxngApiKey: () -> String
+        val searxngApiKey: () -> String,
+        val getSelectedModel: () -> String
     )
 
     private var deepSeekService: DeepSeekApiService? = null
@@ -481,7 +482,7 @@ Antworte ausführlich und fundiert, basierend auf dem Bericht.
                 "✅ Verbindung erfolgreich! ${body?.instance_name ?: "SearXNG"} (v${body?.version ?: "?"})"
             } else {
                 // Fallback: try a search
-                val searchResp = getSearXngService().search(q = "test", format = "json")
+                val searchResp = getSearXngService().search(query = "test", format = "json")
                 if (searchResp.isSuccessful) {
                     "✅ Verbindung erfolgreich! (SearXNG)"
                 } else {

@@ -70,11 +70,9 @@ fun ResearchScreen(
 
                     // Linear progress indicator
                     LinearProgressIndicator(
-                        progress = {
-                            if (researchState.totalIterations > 0) {
-                                (researchState.currentIteration - 1).toFloat() / researchState.totalIterations
-                            } else 0f
-                        },
+                        progress = if (researchState.totalIterations > 0)
+                            (researchState.currentIteration - 1).toFloat() / researchState.totalIterations
+                        else 0f,
                         modifier = Modifier.fillMaxWidth().height(8.dp),
                     )
 
@@ -218,7 +216,7 @@ private fun IterationCard(iteration: com.deepresearch.app.data.model.IterationRe
                 Column(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 ) {
-                    HorizontalDivider()
+                    Divider()
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Search query

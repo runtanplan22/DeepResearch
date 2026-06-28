@@ -1,21 +1,20 @@
 package com.deepresearch.app.ui.components
 
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.unit.dp
 
 /**
  * Simple Markdown renderer for Compose.
  * Handles: headings, bold, italic, code, links, lists, blockquotes, horizontal rules.
- * Images are not rendered inline (handled separately via Coil).
  */
 @Composable
 fun MarkdownText(
@@ -23,7 +22,16 @@ fun MarkdownText(
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE
 ) {
-    val styledText = buildMarkdownAnnotatedString(markdown)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val headlineSmallSize = MaterialTheme.typography.headlineSmall.fontSize
+    val headlineMediumSize = MaterialTheme.typography.headlineMedium.fontSize
+    val headlineLargeSize = MaterialTheme.typography.headlineLarge.fontSize
+
+    val styledText = remember(markdown) {
+        buildMarkdownAnnotatedString(markdown, primaryColor, onSurfaceVariant,
+            headlineSmallSize, headlineMediumSize, headlineLargeSize)
+    }
     Text(
         text = styledText,
         modifier = modifier,
@@ -32,68 +40,64 @@ fun MarkdownText(
     )
 }
 
-@Composable
-fun buildMarkdownAnnotatedString(markdown: String): AnnotatedString {
+private fun buildMarkdownAnnotatedString(
+    markdown: String,
+    primaryColor: Color,
+    onSurfaceVariant: Color,
+    headlineSmallSize: androidx.compose.ui.unit.TextUnit,
+    headlineMediumSize: androidx.compose.ui.unit.TextUnit,
+    headlineLargeSize: androidx.compose.ui.unit.TextUnit
+): AnnotatedString {
     val builder = AnnotatedString.Builder()
 
-    // Process line by line
     val lines = markdown.split("\n")
-    for (i in lines.indices) {
-        val line = lines[i]
-
+    for (line in lines) {
         when {
-            // Headings
             line.startsWith("### ") -> {
-                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.headlineSmall.fontSize)) {
+                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = headlineSmallSize)) {
                     append(line.removePrefix("### "))
                 }
                 builder.append("\n\n")
             }
             line.startsWith("## ") -> {
-                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.headlineMedium.fontSize)) {
+                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = headlineMediumSize)) {
                     append(line.removePrefix("## "))
                 }
                 builder.append("\n\n")
             }
             line.startsWith("# ") -> {
-                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = MaterialTheme.typography.headlineLarge.fontSize)) {
+                builder.withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = headlineLargeSize)) {
                     append(line.removePrefix("# "))
                 }
                 builder.append("\n\n")
             }
-            // Horizontal rule
             line.trimStart().startsWith("---") || line.trimStart().startsWith("***") || line.trimStart().startsWith("___") -> {
                 builder.append("─────────────────────────\n\n")
             }
-            // Unordered list
             line.trimStart().startsWith("- ") || line.trimStart().startsWith("* ") -> {
                 val content = line.trimStart().removePrefix("- ").removePrefix("* ")
-                builder.append("  •  ")
-                processInlineMarkdown(builder, content)
+                builder.append("  \u2022  ")
+                processInlineMarkdown(builder, content, primaryColor)
                 builder.append("\n")
             }
-            // Ordered list
             line.trimStart().matches(Regex("""^\d+\..*""")) -> {
                 val content = line.trimStart().replaceFirst(Regex("""^\d+\.\s*"""), "")
                 builder.append(line.trimStart().substringBefore("."))
                 builder.append(".  ")
-                processInlineMarkdown(builder, content)
+                processInlineMarkdown(builder, content, primaryColor)
                 builder.append("\n")
             }
-            // Blockquote
             line.trimStart().startsWith("> ") -> {
-                builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                builder.withStyle(SpanStyle(fontStyle = FontStyle.Italic, color = onSurfaceVariant)) {
                     builder.append(line.trimStart().removePrefix("> "))
                 }
                 builder.append("\n\n")
             }
-            // Empty line
             line.isBlank() -> {
                 builder.append("\n")
             }
-            // Regular text
             else -> {
-                processInlineMarkdown(builder, line)
+                processInlineMarkdown(builder, line, primaryColor)
                 builder.append("\n")
             }
         }
@@ -102,29 +106,26 @@ fun buildMarkdownAnnotatedString(markdown: String): AnnotatedString {
     return builder.toAnnotatedString()
 }
 
-/**
- * Process inline markdown: bold, italic, code, links.
- */
-private fun processInlineMarkdown(builder: AnnotatedString.Builder, text: String) {
+private fun processInlineMarkdown(
+    builder: AnnotatedString.Builder,
+    text: String,
+    primaryColor: Color
+) {
     var remaining = text
 
     while (remaining.isNotEmpty()) {
-        // Find the earliest occurrence of any markdown pattern
         val boldStart = remaining.indexOf("**")
         val italicStart = remaining.indexOf("*")
         val codeStart = remaining.indexOf("`")
         val linkStart = remaining.indexOf("[")
 
-        // Skip if current position is at a bold/italic start that matches
         val nextSpecial = findNextSpecial(remaining, boldStart, italicStart, codeStart, linkStart)
 
         if (nextSpecial == null) {
-            // No more markdown, append remaining text
             builder.append(remaining)
             break
         }
 
-        // Append text before the markdown
         builder.append(remaining.substring(0, nextSpecial.startIndex))
 
         when (nextSpecial.type) {
@@ -141,7 +142,6 @@ private fun processInlineMarkdown(builder: AnnotatedString.Builder, text: String
                 }
             }
             SpecialType.ITALIC -> {
-                // Make sure this isn't a bold delimiter
                 if (remaining.length > nextSpecial.startIndex + 1 && remaining[nextSpecial.startIndex + 1] == '*') {
                     builder.append("*")
                     remaining = remaining.substring(nextSpecial.startIndex + 1)
@@ -161,7 +161,7 @@ private fun processInlineMarkdown(builder: AnnotatedString.Builder, text: String
             SpecialType.CODE -> {
                 val end = remaining.indexOf("`", nextSpecial.startIndex + 1)
                 if (end != -1) {
-                    builder.withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)) {
+                    builder.withStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = primaryColor)) {
                         append(remaining.substring(nextSpecial.startIndex + 1, end))
                     }
                     remaining = remaining.substring(end + 1)
@@ -176,7 +176,7 @@ private fun processInlineMarkdown(builder: AnnotatedString.Builder, text: String
                 if (closeBracket != -1 && endParen != -1) {
                     val linkText = remaining.substring(nextSpecial.startIndex + 1, closeBracket)
                     val url = remaining.substring(closeBracket + 2, endParen)
-                    builder.withStyle(SpanStyle(textDecoration = TextDecoration.Underline, color = MaterialTheme.colorScheme.primary)) {
+                    builder.withStyle(SpanStyle(textDecoration = TextDecoration.Underline, color = primaryColor)) {
                         append(linkText)
                     }
                     builder.addStringAnnotation("url", url, builder.length - linkText.length, builder.length)

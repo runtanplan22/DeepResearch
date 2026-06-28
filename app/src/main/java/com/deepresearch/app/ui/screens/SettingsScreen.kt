@@ -231,7 +231,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider()
+            Divider()
             Spacer(modifier = Modifier.height(24.dp))
 
             // ====== SearXNG Section ======
@@ -325,7 +325,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            HorizontalDivider()
+            Divider()
             Spacer(modifier = Modifier.height(24.dp))
 
             // App info

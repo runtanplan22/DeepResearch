@@ -366,7 +366,7 @@ private fun DiscussionTab(viewModel: ResearchViewModel) {
         }
 
         // Input
-        HorizontalDivider()
+        Divider()
         Row(
             modifier = Modifier
                 .fillMaxWidth()

@@ -25,7 +25,8 @@ class ResearchViewModel(application: Application) : AndroidViewModel(application
             deepSeekBaseUrl = { settings.getDeepSeekBaseUrl() },
             deepSeekApiKey = { settings.getDeepSeekApiKey() },
             searxngBaseUrl = { settings.getSearxngBaseUrl() },
-            searxngApiKey = { settings.getSearxngApiKey() }
+            searxngApiKey = { settings.getSearxngApiKey() },
+            getSelectedModel = { settings.getSelectedModel() }
         ) { }
     )
 
